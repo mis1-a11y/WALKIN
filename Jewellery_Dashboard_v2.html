@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jewellery Showroom Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+  --bg:#0d1117;
+  --surface:#161b22;
+  --card:#1c2333;
+  --border:#30363d;
+  --text:#e6edf3;
+  --muted:#8b949e;
+  --accent:#e94560;
+  --green:#3fb950;
+  --yellow:#d29922;
+  --blue:#58a6ff;
+  --purple:#bc8cff;
+  --teal:#39d353;
+  --font:'Segoe UI',system-ui,sans-serif;
+
+  --chart-grid:rgba(48,54,61,.4);
+  --tooltip-bg:#1c2333;
+  --table-hover:rgba(255,255,255,.03);
+}
+
+body.light-theme{
+  --bg:#f5f7fb;
+  --surface:#ffffff;
+  --card:#ffffff;
+  --border:#dce3ea;
+  --text:#111827;
+  --muted:#6b7280;
+  --accent:#e94560;
+  --green:#16a34a;
+  --yellow:#ca8a04;
+  --blue:#2563eb;
+  --purple:#7c3aed;
+  --teal:#0f766e;
+
+  --chart-grid:rgba(0,0,0,.08);
+  --tooltip-bg:#ffffff;
+  --table-hover:rgba(0,0,0,.03);
+}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+	body,
+.header,
+.filters-bar,
+.chart-card,
+.kpi-card,
+.table-card,
+.modal,
+button,
+select,
+input,
+tbody tr,
+.toast{
+  transition:all .25s ease;
+}
+  h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px}
+
+  /* HEADER */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .header-left{display:flex;align-items:center;gap:12px}
+  .logo{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .header-title{font-size:17px;font-weight:600;color:var(--text)}
+  .header-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .upload-btn{background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .upload-btn:hover{opacity:.88}
+  .apps-btn{background:var(--card);color:var(--blue);border:1px solid var(--blue);padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+  .apps-btn:hover{background:var(--blue);color:#fff}
+  #file-input{display:none}
+
+  /* APPS SCRIPT MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center}
+  .modal-overlay.active{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;padding:28px;position:relative}
+  .modal h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .modal .modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+  .modal-close{position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+  .modal-close:hover{color:var(--text)}
+  .step-block{margin-bottom:20px}
+  .step-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px}
+  .step-desc{font-size:13px;color:var(--text);margin-bottom:10px;line-height:1.6}
+  .step-desc a{color:var(--blue);text-decoration:none}
+  .step-desc a:hover{text-decoration:underline}
+  .code-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11.5px;font-family:monospace;color:#79c0ff;line-height:1.7;white-space:pre-wrap;word-break:break-all;position:relative}
+  .copy-code-btn{position:absolute;top:8px;right:8px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer}
+  .copy-code-btn:hover{color:var(--text)}
+  .url-input-row{display:flex;gap:8px;align-items:center}
+  .url-input-row input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;outline:none}
+  .url-input-row input:focus{border-color:var(--blue)}
+  .url-input-row input::placeholder{color:var(--muted)}
+  .connect-btn{background:var(--blue);color:#fff;border:none;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .connect-btn:hover{opacity:.88}
+  .conn-status{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:10px;min-height:20px}
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+  .conn-dot.ok{background:var(--green)}
+  .conn-dot.err{background:var(--accent)}
+  .conn-dot.loading{background:var(--yellow);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+  .auto-sync-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+  .auto-sync-row label{font-size:13px;color:var(--text)}
+  .auto-sync-row span{font-size:12px;color:var(--muted)}
+  .toggle-switch{position:relative;width:40px;height:22px;flex-shrink:0}
+  .toggle-switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:22px;transition:.3s}
+  .slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+  .toggle-switch input:checked+.slider{background:var(--blue)}
+  .toggle-switch input:checked+.slider:before{transform:translateX(18px)}
+  .tabs{display:flex;gap:4px}
+  .tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* FILTERS */
+  .filters-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .filter-group{display:flex;align-items:center;gap:6px}
+  .filter-group label{font-size:11px;color:var(--muted);white-space:nowrap}
+  .filter-group select,.filter-group input[type=text]{background:var(--card);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:12px;outline:none;cursor:pointer}
+  .filter-group select:focus,.filter-group input:focus{border-color:var(--accent)}
+  .reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+  .reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* MAIN */
+  .main{padding:20px 24px}
+  .section{margin-bottom:28px}
+
+  /* KPI GRID */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .kpi-card.red::before{background:var(--accent)}
+  .kpi-card.green::before{background:var(--green)}
+  .kpi-card.blue::before{background:var(--blue)}
+  .kpi-card.yellow::before{background:var(--yellow)}
+  .kpi-card.purple::before{background:var(--purple)}
+  .kpi-card.teal::before{background:var(--teal)}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:8px}
+  .kpi-value{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+  .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px}
+
+  /* CHART GRID */
+  .chart-grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .chart-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .chart-card h2{margin-bottom:14px}
+  .chart-wrap{position:relative}
+
+  /* TABLE */
+  .table-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .table-card h2{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{background:var(--surface);padding:10px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border)}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:var(--table-hover)}
+  tbody td{padding:9px 12px;color:var(--text);white-space:nowrap}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+  .badge-green{background:rgba(63,185,80,.15);color:#3fb950}
+  .badge-red{background:rgba(233,69,96,.15);color:#e94560}
+  .badge-yellow{background:rgba(210,153,34,.15);color:#d29922}
+  .badge-blue{background:rgba(88,166,255,.15);color:#58a6ff}
+
+  /* EMPTY STATE */
+  .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+  .empty-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+  .empty-title{font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px}
+  .empty-sub{font-size:13px;line-height:1.6}
+
+  /* PROGRESS BAR */
+  .prog-wrap{margin-top:6px}
+  .prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+  .prog-fill{height:100%;border-radius:2px;transition:width .4s}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--text);z-index:999;transform:translateY(80px);transition:transform .3s;pointer-events:none}
+  .toast.show{transform:translateY(0)}
+
+  /* DRAG ZONE */
+  .drop-overlay{display:none;position:fixed;inset:0;background:rgba(13,17,23,.88);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .drop-overlay.active{display:flex}
+  .drop-box{border:2px dashed var(--accent);border-radius:16px;padding:40px 60px;text-align:center}
+  .drop-box p{color:var(--text);font-size:16px;font-weight:500;margin-top:8px}
+  .drop-box small{color:var(--muted);font-size:13px}
+
+  @media(max-width:600px){
+    .header{flex-direction:column;align-items:flex-start}
+    .main{padding:14px}
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .filters-bar{padding:10px 14px}
+  }
+</style>
+
+<!-- APPS SCRIPT MODAL -->
+<div class="modal-overlay" id="appsModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAppsModal()">&#10005;</button>
+    <h3>&#9729; Google Apps Script — Live Deploy</h3>
+    <div class="modal-sub">Apne Google Sheet se seedha yahan live data fetch karo, bina CSV download kiye.</div>
+
+    <div class="step-block">
+      <div class="step-label">Step 1 — Google Sheet kholein</div>
+      <div class="step-desc">
+        Apni Jewellery showroom Google Sheet mein jayein aur menu mein 
+        <strong>Extensions → Apps Script</strong> click karein.
+      </div>
+    </div>
+
+    <div class="step-block">
+      <div class="step-label">Step 2 — Neeche ka code paste karein</div>
+      <div class="step-desc">Apps Script editor mein pura code replace karke neeche wala paste karein:</div>
+      <div class="code-block" id="gasCode">function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(e.parameter.sheet || 'Actual data');
+  if (!sheet) return ContentService.createTextOutput(
+    JSON.stringify({error:'Sheet not found'})).setMimeType(ContentService.MimeType.JSON);
+  
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const data = rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+  
+  return ContentService
+    .createTextOutput(JSON.stringify({data, sheet: sheet.getName(), rows: data.length}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+</div>
+      <button class="copy-code-btn" onclick="copyCode()">&#128203; Copy</button>
+    </div>
+
+    <div class="step-block">
+      <div class="step-label">Step 3 — Deploy karein</div>
+      <div class="step-desc">
+        Apps Script mein <strong>Deploy → New deployment</strong> click karein.<br>
+        Type: <strong>Web app</strong> | Execute as: <strong>Me</strong> | Who has access: <strong>Anyone</strong><br>
+        Deploy karne ke baad <em>Web app URL</em> copy karein.
+      </div>
+    </div>
+
+    <div class="step-block">
+      <div class="step-label">Step 4 — URL paste karein aur connect karein</div>
+      <div class="url-input-row">
+        <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+        <button class="connect-btn" onclick="connectGAS()">Connect</button>
+      </div>
+      <div class="conn-status" id="connStatus">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connText">URL enter karein aur Connect dabayein</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="auto-sync-row">
+      <div>
+        <label>Auto-refresh (har 60 sec)</label><br>
+        <span id="autoSyncLabel">Band hai</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="autoSyncToggle" onchange="toggleAutoSync()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <hr class="divider">
+
+    <div class="step-block" style="margin-bottom:0">
+      <div class="step-label">Sheet select karein</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="tab" id="sheetWalkin" onclick="fetchSheet('Actual data')" style="font-size:12px">Actual data</button>
+        <button class="tab" id="sheetOrders" onclick="fetchSheet('Order Book')" style="font-size:12px">Order Book</button>
+        <button class="tab" onclick="fetchSheet('Actual data');fetchSheet('Order Book')" style="font-size:12px">Both</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-box">
+    <div style="font-size:40px;color:var(--accent)">&#8659;</div>
+    <p>Drop your CSV file here</p>
+    <small>Actual data or Order Book sheet exported as CSV</small>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">&#128142;</div>
+    <div>
+      <div class="header-title">Jewellery Showroom Dashboard</div>
+      <div class="header-sub" id="lastUpdated">No data loaded — upload a CSV to begin</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('walkin')">Walk-ins</button>
+      <button class="tab" onclick="switchTab('orders')">Order Book</button>
+      <button class="tab" onclick="switchTab('associate')">Associates</button>
+    </div>
+    <button class="apps-btn" onclick="openAppsModal()">
+      &#9729; Apps Script
+	<button class="apps-btn" id="themeToggle" onclick="toggleTheme()">
+  	🌙 Dark
+	</button>
+    </button>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+      &#8679; Upload CSV
+    </button>
+    <input type="file" id="file-input" accept=".csv" multiple>
+  </div>
+</div>
+
+<div class="filters-bar" id="filtersBar" style="display:none">
+  <div class="filter-group"><label>Month</label><select id="fMonth"><option value="">All</option></select></div>
+  <div class="filter-group"><label>Week</label><select id="fWeek"><option value="">All</option></select></div>
+  <div class="filter-group"><label>Associate</label><select id="fAssoc"><option value="">All</option></select></div>
+  <div class="filter-group"><label>Category</label><select id="fCat"><option value="">All</option></select></div>
+  <div class="filter-group"><label>Old / New</label><select id="fOldNew"><option value="">All</option></select></div>
+  <div class="filter-group"><label>Converted</label><select id="fConv"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+  <button class="reset-btn" onclick="resetFilters()">&#8635; Reset</button>
+</div>
+
+<div class="main">
+  <div id="emptyState">
+    <div class="empty">
+      <div class="empty-icon">&#128202;</div>
+      <div class="empty-title">Upload your showroom data to begin</div>
+      <div class="empty-sub">
+        Export your Google Sheet tabs as CSV and upload them here.<br>
+        <strong>Actual data</strong> CSV for walk-ins &nbsp;|&nbsp; <strong>Order Book</strong> CSV for orders<br><br>
+        You can also drag &amp; drop CSV files anywhere on this page.
+      </div>
+    </div>
+  </div>
+
+  <div id="dashContent" style="display:none">
+
+    <!-- WALK-IN TAB -->
+    <div id="tab-walkin">
+      <div class="section">
+        <h2>Walk-in KPIs</h2>
+        <div class="kpi-grid" id="walkKpis"></div>
+      </div>
+      <div class="section">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <h2>Daily walk-in trend</h2>
+            <div class="chart-wrap"><canvas id="chartDaily" height="180"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h2>Weekly analysis</h2>
+            <div class="chart-wrap"><canvas id="chartWeekly" height="180"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <h2>Monthly trend</h2>
+            <div class="chart-wrap"><canvas id="chartMonthly" height="180"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h2>Category analysis</h2>
+            <div class="chart-wrap"><canvas id="chartCategory" height="180"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="chart-grid-3">
+          <div class="chart-card">
+            <h2>Customer type</h2>
+            <div class="chart-wrap"><canvas id="chartOldNew" height="200"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h2>Purchase status</h2>
+            <div class="chart-wrap"><canvas id="chartPurchase" height="200"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h2>Feedback taken</h2>
+            <div class="chart-wrap"><canvas id="chartFeedback" height="200"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="table-card">
+          <h2>Rejection reasons</h2>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Reason</th><th>Count</th><th>Share</th></tr></thead>
+              <tbody id="reasonTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDER BOOK TAB -->
+    <div id="tab-orders" style="display:none">
+      <div class="section">
+        <h2>Order book KPIs</h2>
+        <div class="kpi-grid" id="orderKpis"></div>
+      </div>
+      <div class="section">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <h2>Orders by status</h2>
+            <div class="chart-wrap"><canvas id="chartOrderStatus" height="200"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h2>Orders booked by week</h2>
+            <div class="chart-wrap"><canvas id="chartOrderWeek" height="200"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="table-card">
+          <h2>Order book — unique orders</h2>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>#</th><th>Order / SKU</th><th>Category</th><th>Customer</th><th>Associate</th><th>Status</th></tr></thead>
+              <tbody id="orderTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSOCIATE TAB -->
+    <div id="tab-associate" style="display:none">
+      <div class="section">
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <h2>Walk-ins per associate</h2>
+            <div class="chart-wrap"><canvas id="chartAssocBar" height="220"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h2>Conversion % per associate</h2>
+            <div class="chart-wrap"><canvas id="chartAssocConv" height="220"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="table-card">
+          <h2>Associate performance table</h2>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Rank</th><th>Associate</th><th>Walk-ins</th><th>Purchased</th><th>Not Purchased</th><th>Conv %</th><th>Orders</th><th>Delivered</th><th>Pending</th><th>Feedback</th></tr></thead>
+              <tbody id="assocTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let RAW = [], ORDER_RAW = [], activeTab = 'walkin';
+let charts = {};
+
+const COL = {
+  MONTH:'Month No.',WEEK:'Week No.',DATE:'Date',ASSOC:'Associate Name',
+  CUST:'Customer Name',OLD_NEW:'Old - New',SKU:'Item SKU / Order No.',
+  CAT:'Catagory',REASON:'Reason written by FM',CONV:'Converterd',
+  PURCH:'Purchased',DELIV:'Order deliv. / book',FEEDBACK:'Feedback taken by CRM'
+};
+
+const isYes = v => ['yes','y','1','true','delivered'].includes(String(v||'').trim().toLowerCase());
+const pct   = (a,b) => b ? Math.round(a/b*100) : 0;
+const uniq  = arr => [...new Set(arr.filter(v=>v))].sort();
+
+function showToast(msg,dur=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+document.getElementById('file-input').addEventListener('change',e=>{
+  [...e.target.files].forEach(parseFile);
+  e.target.value='';
+});
+
+document.addEventListener('dragenter',e=>{e.preventDefault();document.getElementById('dropOverlay').classList.add('active')});
+document.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.getElementById('dropOverlay').classList.remove('active')});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{
+  e.preventDefault();
+  document.getElementById('dropOverlay').classList.remove('active');
+  [...e.dataTransfer.files].forEach(parseFile);
+});
+
+function parseFile(file){
+  Papa.parse(file,{
+    header:true,skipEmptyLines:true,
+    complete:res=>{
+      const rows = res.data.filter(r=>Object.values(r).some(v=>v&&String(v).trim()));
+      const cols = Object.keys(rows[0]||{});
+      const isOrderBook = cols.some(c=>c.toLowerCase().includes('order')) && !cols.some(c=>c.includes('Associate Name'));
+      if(cols.includes('Associate Name')||cols.includes('Converterd')){
+        RAW = rows; showToast('Actual data loaded: '+rows.length+' walk-ins');
+      } else {
+        ORDER_RAW = rows; showToast('Order Book loaded: '+rows.length+' rows');
+      }
+      buildFilters(); render();
+    }
+  });
+}
+
+function getFiltered(){
+  const m=document.getElementById('fMonth').value;
+  const w=document.getElementById('fWeek').value;
+  const a=document.getElementById('fAssoc').value;
+  const c=document.getElementById('fCat').value;
+  const on=document.getElementById('fOldNew').value;
+  const cv=document.getElementById('fConv').value;
+  return RAW.filter(r=>{
+    if(m && String(r[COL.MONTH]||'').trim()!==m) return false;
+    if(w && String(r[COL.WEEK]||'').trim()!==w) return false;
+    if(a && String(r[COL.ASSOC]||'').trim()!==a) return false;
+    if(c && String(r[COL.CAT]||'').trim()!==c) return false;
+    if(on && String(r[COL.OLD_NEW]||'').trim().toLowerCase()!==on.toLowerCase()) return false;
+    if(cv==='yes' && !isYes(r[COL.CONV])) return false;
+    if(cv==='no' && isYes(r[COL.CONV])) return false;
+    return true;
+  });
+}
+
+function buildFilters(){
+  if(!RAW.length) return;
+  document.getElementById('filtersBar').style.display='flex';
+  const set=(id,vals)=>{
+    const el=document.getElementById(id);
+    const cur=el.value;
+    el.innerHTML='<option value="">All</option>';
+    vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o)});
+    if(vals.includes(cur)) el.value=cur;
+  };
+  set('fMonth',uniq(RAW.map(r=>String(r[COL.MONTH]||'').trim())));
+  set('fWeek', uniq(RAW.map(r=>String(r[COL.WEEK]||'').trim())));
+  set('fAssoc',uniq(RAW.map(r=>String(r[COL.ASSOC]||'').trim())));
+  set('fCat',  uniq(RAW.map(r=>String(r[COL.CAT]||'').trim())));
+  set('fOldNew',uniq(RAW.map(r=>String(r[COL.OLD_NEW]||'').trim())));
+  ['fMonth','fWeek','fAssoc','fCat','fOldNew','fConv'].forEach(id=>
+    document.getElementById(id).addEventListener('change',render));
+}
+
+function resetFilters(){
+  ['fMonth','fWeek','fAssoc','fCat','fOldNew','fConv'].forEach(id=>document.getElementById(id).value='');
+  render();
+}
+
+function render(){
+  if(!RAW.length && !ORDER_RAW.length) return;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('dashContent').style.display='block';
+  document.getElementById('lastUpdated').textContent=
+    'Walk-ins: '+RAW.length+' rows'+
+    (ORDER_RAW.length?' | Orders: '+ORDER_RAW.length+' rows':'')+
+    ' — updated '+new Date().toLocaleTimeString();
+  const data = getFiltered();
+  if(activeTab==='walkin') renderWalkin(data);
+  else if(activeTab==='orders') renderOrders(data);
+  else renderAssociate(data);
+}
+
+function renderWalkin(data){
+  // ── Column N (Purchased) is the single source of truth ──
+  // Only rows where col N has a meaningful entry are counted as walk-ins
+  const PURCH_VAL     = v => String(v||'').trim();
+  const isPurchased   = v => PURCH_VAL(v).toLowerCase() === 'purchased';
+  const isNotPurchased= v => PURCH_VAL(v).toLowerCase() === 'not purchased';
+
+  // Total = rows where col-N is NOT empty/blank/dash
+  const walkData = data.filter(r => {
+    const v = PURCH_VAL(r[COL.PURCH]);
+    return v && v !== '-' && v !== '–';
+  });
+  const total       = walkData.length;
+  const purch       = walkData.filter(r => isPurchased(r[COL.PURCH])).length;
+  const notPurch    = walkData.filter(r => isNotPurchased(r[COL.PURCH])).length;
+  // Conversion = Purchased ÷ Total (col-N basis)
+  const conv        = purch;
+
+  // Other stats still from full filtered data (old/new, feedback)
+  const oldC     = data.filter(r=>String(r[COL.OLD_NEW]||'').trim().toLowerCase()==='old').length;
+  const newC     = data.filter(r=>String(r[COL.OLD_NEW]||'').trim().toLowerCase()==='new').length;
+  const feedback = data.filter(r=>isYes(r[COL.FEEDBACK])).length;
+  const allSkus  = [...new Set(data.map(r=>String(r[COL.SKU]||'').trim()).filter(s=>s))];
+
+  document.getElementById('walkKpis').innerHTML = kpiHTML([
+    {label:'Total walk-ins', value:total, sub:'Col N mein entry wali rows', color:'blue'},
+    {label:'Purchased', value:purch, sub:pct(purch,total)+'% of walk-ins', color:'green'},
+    {label:'Not Purchased', value:notPurch, sub:pct(notPurch,total)+'% of walk-ins', color:'red'},
+    {label:'Conversion %', value:pct(conv,total)+'%', sub:purch+' purchased of '+total, color:pct(conv,total)>=50?'green':'red'},
+    {label:'Old customers', value:oldC, sub:pct(oldC,data.length)+'% returning', color:'purple'},
+    {label:'New customers', value:newC, sub:pct(newC,data.length)+'% first-time', color:'yellow'},
+    {label:'Feedback taken', value:feedback, sub:pct(feedback,data.length)+'% coverage', color:'teal'},
+  ]);
+
+  // Daily — col-N valid rows only
+  const dayMap={};
+  walkData.forEach(r=>{
+    let d=String(r[COL.DATE]||'').trim();
+    if(!d) return;
+    try{ d=new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }catch(e){}
+    dayMap[d]=(dayMap[d]||0)+1;
+  });
+  const dayLabels=Object.keys(dayMap), dayVals=Object.values(dayMap);
+  makeChart('chartDaily','line',dayLabels,
+    [{label:'Walk-ins',data:dayVals,borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,.1)',fill:true,tension:.4,pointRadius:3}]);
+
+  // Weekly — purchased = col-N === 'purchased'
+  const weekMap={};
+  walkData.forEach(r=>{
+    const w='W'+String(r[COL.WEEK]||'?').trim();
+    if(!weekMap[w]) weekMap[w]={walk:0,conv:0};
+    weekMap[w].walk++;
+    if(isPurchased(r[COL.PURCH])) weekMap[w].conv++;
+  });
+  const wk=Object.keys(weekMap).sort();
+  makeChart('chartWeekly','bar',wk,[
+    {label:'Walk-ins',data:wk.map(k=>weekMap[k].walk),backgroundColor:'rgba(88,166,255,.75)'},
+    {label:'Purchased',data:wk.map(k=>weekMap[k].conv),backgroundColor:'rgba(63,185,80,.75)'},
+  ]);
+
+  // Monthly — purchased = col-N basis
+  const mMap={};
+  walkData.forEach(r=>{
+    const m='M'+String(r[COL.MONTH]||'?').trim();
+    if(!mMap[m]) mMap[m]={walk:0,conv:0};
+    mMap[m].walk++;
+    if(isPurchased(r[COL.PURCH])) mMap[m].conv++;
+  });
+  const mk=Object.keys(mMap).sort();
+  makeChart('chartMonthly','line',mk,[
+    {label:'Walk-ins',data:mk.map(k=>mMap[k].walk),borderColor:'#bc8cff',backgroundColor:'rgba(188,140,255,.12)',fill:true,tension:.4},
+    {label:'Purchased',data:mk.map(k=>mMap[k].conv),borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,.12)',fill:true,tension:.4},
+  ]);
+
+  // Category — col-N valid rows
+  const catMap={};
+  walkData.forEach(r=>{const c=String(r[COL.CAT]||'Uncategorized').trim();catMap[c]=(catMap[c]||0)+1});
+  const ck=Object.keys(catMap).sort((a,b)=>catMap[b]-catMap[a]);
+  makeChart('chartCategory','bar',ck,
+    [{label:'Walk-ins',data:ck.map(k=>catMap[k]),backgroundColor:ck.map((_,i)=>['#e94560','#58a6ff','#3fb950','#d29922','#bc8cff','#39d353'][i%6])}],
+    {indexAxis:'y'});
+
+  // Donut: old/new (from full data)
+  makeChart('chartOldNew','doughnut',['Old','New'],[
+    {data:[oldC,newC],backgroundColor:['#58a6ff','#e94560'],borderWidth:0}],{plugins:{legend:{position:'bottom'}}});
+
+  // Donut: Purchased / Not Purchased / Others — col-N basis
+  const othersCount = total - purch - notPurch;
+  makeChart('chartPurchase','doughnut',['Purchased','Not Purchased','Others'],[
+    {data:[purch,notPurch,othersCount],backgroundColor:['#3fb950','#e94560','#30363d'],borderWidth:0}],{plugins:{legend:{position:'bottom'}}});
+
+  // Donut: feedback (from full data)
+  const noFeed=data.length-feedback;
+  makeChart('chartFeedback','doughnut',['Taken','Not taken'],[
+    {data:[feedback,noFeed],backgroundColor:['#39d353','#30363d'],borderWidth:0}],{plugins:{legend:{position:'bottom'}}});
+
+  // Rejection reasons — only Not Purchased rows (col-N basis)
+  const reasonMap={};
+  walkData.filter(r=>isNotPurchased(r[COL.PURCH])&&String(r[COL.REASON]||'').trim())
+    .forEach(r=>{const rs=String(r[COL.REASON]).trim();reasonMap[rs]=(reasonMap[rs]||0)+1});
+  const rk=Object.keys(reasonMap).sort((a,b)=>reasonMap[b]-reasonMap[a]);
+  document.getElementById('reasonTable').innerHTML = rk.length
+    ? rk.map(r=>`<tr><td>${r}</td><td>${reasonMap[r]}</td><td>
+        <div class="prog-wrap"><div class="prog-bar"><div class="prog-fill" style="width:${pct(reasonMap[r],notPurch)}%;background:#e94560"></div></div>
+        <span style="font-size:11px;color:var(--muted)">${pct(reasonMap[r],notPurch)}%</span></div></td></tr>`).join('')
+    : '<tr><td colspan="3" style="padding:20px;color:var(--muted);text-align:center">No rejection data available</td></tr>';
+}
+
+function renderOrders(walkinData){
+  const allSkus=[...new Set(walkinData.map(r=>String(r[COL.SKU]||'').trim()).filter(s=>s))];
+  const delivSkus=[...new Set(walkinData.filter(r=>isYes(r[COL.DELIV])).map(r=>String(r[COL.SKU]||'').trim()).filter(s=>s))];
+  const total=allSkus.length, delivered=delivSkus.length, pending=total-delivered;
+
+  document.getElementById('orderKpis').innerHTML = kpiHTML([
+    {label:'Total unique orders', value:total, sub:'Distinct order / SKU numbers', color:'blue'},
+    {label:'Delivered', value:delivered, sub:pct(delivered,total)+'% delivery rate', color:'green'},
+    {label:'Pending', value:pending, sub:pct(pending,total)+'% pending', color:pending>0?'yellow':'green'},
+    {label:'Delivery %', value:pct(delivered,total)+'%', sub:delivered+' of '+total+' delivered', color:pct(delivered,total)>=70?'green':'red'},
+  ]);
+
+  makeChart('chartOrderStatus','doughnut',['Delivered','Pending'],[
+    {data:[delivered,pending],backgroundColor:['#3fb950','#d29922'],borderWidth:0}],{plugins:{legend:{position:'bottom'}}});
+
+  // Orders by week
+  const owMap={};
+  walkinData.forEach(r=>{
+    const sku=String(r[COL.SKU]||'').trim();
+    if(!sku) return;
+    const w='W'+String(r[COL.WEEK]||'?').trim();
+    if(!owMap[w]) owMap[w]=new Set();
+    owMap[w].add(sku);
+  });
+  const owk=Object.keys(owMap).sort();
+  makeChart('chartOrderWeek','bar',owk,[
+    {label:'Orders booked',data:owk.map(k=>owMap[k].size),backgroundColor:'rgba(88,166,255,.75)'}]);
+
+  // Order table — one row per unique SKU
+  const skuRows={};
+  walkinData.forEach(r=>{
+    const sku=String(r[COL.SKU]||'').trim();
+    if(!sku) return;
+    if(!skuRows[sku]) skuRows[sku]={sku,cat:String(r[COL.CAT]||'').trim(),cust:String(r[COL.CUST]||'').trim(),assoc:String(r[COL.ASSOC]||'').trim(),deliv:isYes(r[COL.DELIV])};
+    if(isYes(r[COL.DELIV])) skuRows[sku].deliv=true;
+  });
+  const skuList=Object.values(skuRows);
+  document.getElementById('orderTable').innerHTML = skuList.length
+    ? skuList.map((s,i)=>`<tr>
+        <td style="color:var(--muted)">${i+1}</td>
+        <td style="font-weight:500">${s.sku}</td>
+        <td>${s.cat||'—'}</td>
+        <td>${s.cust||'—'}</td>
+        <td>${s.assoc||'—'}</td>
+        <td><span class="badge ${s.deliv?'badge-green':'badge-yellow'}">${s.deliv?'Delivered':'Pending'}</span></td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="padding:20px;color:var(--muted);text-align:center">No order data available</td></tr>';
+}
+
+function renderAssociate(data){
+  // Col-N basis: only rows with valid Purchased column entry
+  const isPurchased    = v => String(v||'').trim().toLowerCase() === 'purchased';
+  const isNotPurchased = v => String(v||'').trim().toLowerCase() === 'not purchased';
+  const hasColN        = r => { const v=String(r[COL.PURCH]||'').trim(); return v && v!=='-' && v!=='–'; };
+
+  const am={};
+  data.forEach(r=>{
+    const a=String(r[COL.ASSOC]||'').trim();
+    if(!a) return;
+    if(!am[a]) am[a]={walk:0,purch:0,notPurch:0,feedback:0,skus:new Set(),delivSkus:new Set()};
+
+    // Count as walk-in only if col-N has entry
+    if(hasColN(r)){
+      am[a].walk++;
+      if(isPurchased(r[COL.PURCH]))    am[a].purch++;
+      if(isNotPurchased(r[COL.PURCH])) am[a].notPurch++;
+    }
+
+    if(isYes(r[COL.FEEDBACK])) am[a].feedback++;
+    const sku=String(r[COL.SKU]||'').trim();
+    if(sku){ am[a].skus.add(sku); if(isYes(r[COL.DELIV])) am[a].delivSkus.add(sku); }
+  });
+
+  const rows=Object.entries(am).map(([n,d])=>({
+    name:n,
+    walk:d.walk,
+    purch:d.purch,
+    notPurch:d.notPurch,
+    feedback:d.feedback,
+    orders:d.skus.size,
+    deliv:d.delivSkus.size,
+    pending:d.skus.size-d.delivSkus.size,
+    convPct:pct(d.purch,d.walk)   // Conversion = Purchased ÷ Total (col-N)
+  })).filter(r=>r.walk>0).sort((a,b)=>b.convPct-a.convPct);
+
+  const names=rows.map(r=>r.name);
+  makeChart('chartAssocBar','bar',names,[
+    {label:'Walk-ins',data:rows.map(r=>r.walk),backgroundColor:'rgba(88,166,255,.75)'},
+    {label:'Purchased',data:rows.map(r=>r.purch),backgroundColor:'rgba(63,185,80,.75)'},
+  ],{indexAxis:'y'});
+
+  makeChart('chartAssocConv','bar',names,[
+    {label:'Conversion %',data:rows.map(r=>r.convPct),backgroundColor:rows.map(r=>r.convPct>=50?'rgba(63,185,80,.8)':r.convPct>=30?'rgba(210,153,34,.8)':'rgba(233,69,96,.8)')}
+  ],{indexAxis:'y',scales:{x:{max:100}}});
+
+  document.getElementById('assocTable').innerHTML = rows.map((r,i)=>{
+    const c=r.convPct>=50?'badge-green':r.convPct>=30?'badge-yellow':'badge-red';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="font-weight:500">${r.name}</td>
+      <td>${r.walk}</td>
+      <td>${r.purch}</td>
+      <td>${r.notPurch}</td>
+      <td><span class="badge ${c}">${r.convPct}%</span></td>
+      <td>${r.orders}</td>
+      <td>${r.deliv}</td>
+      <td>${r.pending}</td>
+      <td>${r.feedback}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" style="padding:20px;color:var(--muted);text-align:center">No data</td></tr>';
+}
+
+function kpiHTML(items){
+  return items.map(k=>`
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+function getChartDefaults(){
+  return {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{
+        labels:{
+          color:getComputedStyle(document.body).getPropertyValue('--muted'),
+          font:{size:11},
+          boxWidth:12
+        }
+      },
+      tooltip:{
+        backgroundColor:getComputedStyle(document.body).getPropertyValue('--tooltip-bg'),
+        borderColor:getComputedStyle(document.body).getPropertyValue('--border'),
+        borderWidth:1,
+        titleColor:getComputedStyle(document.body).getPropertyValue('--text'),
+        bodyColor:getComputedStyle(document.body).getPropertyValue('--muted')
+      }
+    },
+    scales:{
+      x:{
+        ticks:{
+          color:getComputedStyle(document.body).getPropertyValue('--muted'),
+          font:{size:10}
+        },
+        grid:{
+          color:getComputedStyle(document.body).getPropertyValue('--chart-grid')
+        }
+      },
+      y:{
+        ticks:{
+          color:getComputedStyle(document.body).getPropertyValue('--muted'),
+          font:{size:10}
+        },
+        grid:{
+          color:getComputedStyle(document.body).getPropertyValue('--chart-grid')
+        }
+      }
+    }
+  };
+}
+
+function makeChart(id,type,labels,datasets,extraOpts={}){
+  if(charts[id]){charts[id].destroy();delete charts[id];}
+  const ctx=document.getElementById(id);
+  if(!ctx) return;
+  const cfg = getChartDefaults();
+  if(type==='doughnut'){delete cfg.scales;}
+  if(extraOpts.indexAxis==='y'){cfg.scales={y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'rgba(48,54,61,.4)'}},x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'rgba(48,54,61,.4)'}}};}
+  const merged=deepMerge(cfg,extraOpts);
+  charts[id]=new Chart(ctx,{type,data:{labels,datasets},options:merged});
+}
+
+function deepMerge(a,b){
+  const r={...a};
+  for(const k in b){
+    if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k])) r[k]=deepMerge(a[k]||{},b[k]);
+    else r[k]=b[k];
+  }
+  return r;
+}
+
+// ─────────────────────────────
+// THEME SWITCHER
+// ─────────────────────────────
+
+let CURRENT_THEME = localStorage.getItem('dashboard-theme') || 'dark';
+
+function applyTheme(theme){
+
+  if(theme === 'light'){
+    document.body.classList.add('light-theme');
+    document.getElementById('themeToggle').innerHTML = '☀️ Light';
+  } else {
+    document.body.classList.remove('light-theme');
+    document.getElementById('themeToggle').innerHTML = '🌙 Dark';
+  }
+
+  CURRENT_THEME = theme;
+  localStorage.setItem('dashboard-theme', theme);
+
+  if(RAW.length || ORDER_RAW.length){
+    render();
+  }
+}
+
+function toggleTheme(){
+  applyTheme(CURRENT_THEME === 'dark' ? 'light' : 'dark');
+}
+
+function autoTheme(){
+  const hour = new Date().getHours();
+
+  if(hour >= 7 && hour < 19){
+    applyTheme('light');
+  } else {
+    applyTheme('dark');
+  }
+}
+
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['walkin','orders','associate'][i]===tab));
+  ['walkin','orders','associate'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  if(RAW.length||ORDER_RAW.length) render();
+}
+
+// ─── APPS SCRIPT ───────────────────────────────────────────
+let GAS_URL = localStorage.getItem('gasUrl') || '';
+let autoSyncTimer = null;
+
+function openAppsModal(){
+  document.getElementById('appsModal').classList.add('active');
+  if(GAS_URL) document.getElementById('gasUrl').value = GAS_URL;
+}
+function closeAppsModal(){
+  document.getElementById('appsModal').classList.remove('active');
+}
+
+function copyCode(){
+  const code = document.getElementById('gasCode').innerText;
+  navigator.clipboard.writeText(code).then(()=>showToast('Code copy ho gaya! ✓'));
+}
+
+function setConnStatus(state, msg){
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  dot.className = 'conn-dot ' + state;
+  text.textContent = msg;
+}
+
+async function connectGAS(){
+  const url = document.getElementById('gasUrl').value.trim();
+  if(!url){ setConnStatus('err','Pehle URL enter karein'); return; }
+  GAS_URL = url;
+  localStorage.setItem('gasUrl', url);
+  setConnStatus('loading','Connect ho raha hai...');
+  await fetchSheet('Actual data');
+}
+
+async function fetchSheet(sheetName){
+  if(!GAS_URL){ showToast('Pehle Apps Script URL connect karein'); openAppsModal(); return; }
+  setConnStatus('loading', sheetName + ' fetch ho raha hai...');
+  try{
+    const res = await fetch(GAS_URL + '?sheet=' + encodeURIComponent(sheetName));
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
+    const rows = json.data || [];
+    if(sheetName.toLowerCase().includes('order')){
+      ORDER_RAW = rows;
+      showToast('Order Book loaded: ' + rows.length + ' rows ✓');
+    } else {
+      RAW = rows;
+      showToast('Actual data loaded: ' + rows.length + ' rows ✓');
+    }
+    setConnStatus('ok', sheetName + ': ' + rows.length + ' rows — ' + new Date().toLocaleTimeString());
+    buildFilters(); render();
+    closeAppsModal();
+  } catch(err){
+    setConnStatus('err', 'Error: ' + err.message);
+    showToast('Fetch failed: ' + err.message, 4000);
+  }
+}
+
+function toggleAutoSync(){
+  const on = document.getElementById('autoSyncToggle').checked;
+  document.getElementById('autoSyncLabel').textContent = on ? 'Chal raha hai (60 sec)' : 'Band hai';
+  if(on){
+    if(!GAS_URL){ showToast('Pehle URL connect karein'); document.getElementById('autoSyncToggle').checked=false; document.getElementById('autoSyncLabel').textContent='Band hai'; return; }
+    autoSyncTimer = setInterval(()=>{
+      fetchSheet('Actual data');
+      if(ORDER_RAW.length) fetchSheet('Order Book');
+    }, 60000);
+    showToast('Auto-refresh chalu: 60 sec mein update hoga');
+  } else {
+    clearInterval(autoSyncTimer);
+    showToast('Auto-refresh band');
+  }
+}
+
+if(localStorage.getItem('dashboard-theme')){
+  applyTheme(CURRENT_THEME);
+} else {
+  autoTheme();
+}
+
+</script>
+</html>
